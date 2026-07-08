@@ -47,3 +47,47 @@ class CampsiteResult(BaseModel):
     site_number: Optional[str] = None
     site_type: Optional[str] = None
     loop: Optional[str] = None
+
+
+# ---- Watchlist ----
+class WatchlistItemCreate(BaseModel):
+    provider: str
+    facility_id: str
+    facility_name: str
+    campsite_id: Optional[str] = None
+    campsite_label: Optional[str] = None
+    start_date: str
+    end_date: str
+    rank: Optional[int] = 1
+    trip_label: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class WatchlistItemUpdate(BaseModel):
+    campsite_id: Optional[str] = None
+    campsite_label: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    rank: Optional[int] = None
+    trip_label: Optional[str] = None
+    notes: Optional[str] = None
+    active: Optional[bool] = None
+
+
+class WatchlistItemOut(BaseModel):
+    id: int
+    provider: str
+    facility_id: str
+    facility_name: str
+    campsite_id: Optional[str] = None
+    campsite_label: Optional[str] = None
+    start_date: str
+    end_date: str
+    rank: int
+    trip_label: Optional[str] = None
+    notes: Optional[str] = None
+    active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
