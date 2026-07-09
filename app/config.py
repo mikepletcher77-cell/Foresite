@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     # Get a free key at https://ridb.recreation.gov/ (Get API Key, top right)
     recreation_gov_api_key: str = ""
 
-    database_url: str = "sqlite:///./foresite.db"
+    database_url: str = ""
 
     class Config:
         env_file = ".env"
