@@ -38,3 +38,32 @@ async def list_campsites(
         return await search_service.list_campsites(facility_id=facility_id)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Search failed: {e}")
+import app.reservecalifornia_service as reservecalifornia_service
+
+
+@router.get("/reservecalifornia/campgrounds", response_model=List[CampgroundResult])
+def search_reservecalifornia_campgrounds(
+    query: str,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Search California State Parks campgrounds by name/keyword.
+    """
+    try:
+        return reservecalifornia_service.search_campgrounds(query=query)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Search failed: {e}")
+
+
+@router.get("/reservecalifornia/campsites", response_model=List[CampsiteResult])
+def list_reservecalifornia_campsites(
+    facility_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    List individual campsites within a California State Parks campground.
+    """
+    try:
+        return reservecalifornia_service.list_campsites(facility_id=facility_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Search failed: {e}")
