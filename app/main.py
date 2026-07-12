@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.database import Base, engine
 from app.routers import auth_router, search_router, watchlist_router
@@ -22,6 +23,7 @@ app.add_middleware(
 app.include_router(auth_router.router)
 app.include_router(search_router.router)
 app.include_router(watchlist_router.router)
+app.mount("/app", StaticFiles(directory="app/static", html=True), name="static")
 
 
 @app.get("/")

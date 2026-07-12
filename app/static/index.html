@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foresite</title>
+<style>
+  :root{
+    --bark:#2f3b2a; --moss:#4a5d3a; --fern:#6b8552; --sand:#ece3cf;
+    --cream:#f7f3e8; --ink:#24291f; --line:rgba(47,59,42,0.18); --ember:#c1622d;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--cream);color:var(--ink);}
+  header{background:var(--bark);color:var(--cream);padding:16px;display:flex;justify-content:space-between;align-items:center;}
+  header h1{margin:0;font-size:18px;}
+  header button{background:none;border:1px solid var(--cream);color:var(--cream);padding:6px 12px;border-radius:8px;font-size:13px;}
+  main{max-width:640px;margin:0 auto;padding:16px;}
+  .card{background:#fff;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+  h2{margin-top:0;font-size:16px;color:var(--bark);}
+  input,select,textarea{width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid var(--line);font-size:14px;margin-bottom:10px;font-family:inherit;}
+  button.primary{background:var(--moss);color:#fff;border:none;padding:11px 16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%;}
+  button.primary:hover{background:var(--bark);}
+  .row{display:flex;gap:8px;}
+  .row > *{flex:1;}
+  .result{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px;}
+  .result .name{font-weight:600;}
+  .result .meta{font-size:12.5px;color:#666;margin:4px 0 8px;}
+  .result button{background:var(--fern);color:#fff;border:none;padding:7px 12px;border-radius:7px;font-size:12.5px;cursor:pointer;}
+  .watch-item{border-left:4px solid var(--ember);background:var(--sand);border-radius:8px;padding:12px;margin-bottom:8px;}
+  .watch-item .top{display:flex;justify-content:space-between;align-items:start;}
+  .watch-item .del{background:none;border:none;color:#a03d1f;cursor:pointer;font-size:13px;}
+  .rank-badge{display:inline-block;background:var(--bark);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;margin-right:6px;}
+  .tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .tabs button{flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--bark);background:#fff;color:var(--bark);font-weight:600;cursor:pointer;}
+  .tabs button.active{background:var(--bark);color:#fff;}
+  .error{color:#a03d1f;font-size:13px;margin-bottom:8px;}
+  .hidden{display:none;}
+  .empty{color:#888;font-size:13.5px;text-align:center;padding:20px;}
+  #authScreen{max-width:380px;margin:60px auto;}
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div class="card">
+    <h2 id="authTitle">Log in to Foresite</h2>
+    <div id="authError" class="error hidden"></div>
+    <input id="authEmail" type="email" placeholder="Email">
+    <input id="authPassword" type="password" placeholder="Password">
+    <input id="authName" type="text" placeholder="Your name" class="hidden">
+    <button class="primary" id="authSubmit">Log in</button>
+    <p style="text-align:center;font-size:13px;margin-top:10px;">
+      <a href="#" id="authToggle">Need an account? Sign up</a>
+    </p>
+  </div>
+</div>
+
+<div id="appScreen" class="hidden">
+  <header>
+    <h1>🏕️ Foresite</h1>
+    <button id="logoutBtn">Log out</button>
+  </header>
+  <main>
+    <div class="tabs">
+      <button class="active" data-tab="search">Search</button>
+      <button data-tab="watchlist">My Watchlist</button>
+    </div>
+
+    <div id="searchTab">
+      <div class="card">
+        <h2>Search campgrounds</h2>
+        <div class="row">
+          <select id="providerSelect">
+            <option value="recreationgov">Nationwide (Recreation.gov)</option>
+            <option value="reservecalifornia">California State Parks</option>
+          </select>
+        </div>
+        <div class="row">
+          <input id="searchQuery" type="text" placeholder="Campground name (e.g. Yosemite)">
+        </div>
+        <button class="primary" id="searchBtn">Search</button>
+      </div>
+      <div id="searchResults"></div>
+    </div>
+
+    <div id="watchlistTab" class="hidden">
+      <div class="card">
+        <h2>Your watched sites</h2>
+        <div id="watchlistResults"></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+const API = "";
+let token = localStorage.getItem("foresite_token") || null;
+let isSignup = false;
+
+function showAuthError(msg){
+  const el = document.getElementById("authError");
+  el.textContent = msg; el.classList.remove("hidden");
+}
+function clearAuthError(){ document.getElementById("authError").classList.add("hidden"); }
+
+document.getElementById("authToggle").addEventListener("click",(e)=>{
+  e.preventDefault();
+  isSignup = !isSignup;
+  document.getElementById("authTitle").textContent = isSignup ? "Create your account" : "Log in to Foresite";
+  document.getElementById("authSubmit").textContent = isSignup ? "Sign up" : "Log in";
+  document.getElementById("authName").classList.toggle("hidden", !isSignup);
+  document.getElementById("authToggle").textContent = isSignup ? "Already have an account? Log in" : "Need an account? Sign up";
+  clearAuthError();
+});
+
+document.getElementById("authSubmit").addEventListener("click", async ()=>{
+  clearAuthError();
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+  const name = document.getElementById("authName").value.trim();
+  if(!email || !password){ showAuthError("Enter an email and password."); return; }
+
+  try{
+    if(isSignup){
+      const res = await fetch(`${API}/auth/signup`, {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({email, password, display_name: name || null})
+      });
+      if(!res.ok){ const d = await res.json(); showAuthError(d.detail || "Signup failed."); return; }
+    }
+    const form = new URLSearchParams();
+    form.set("username", email); form.set("password", password);
+    const loginRes = await fetch(`${API}/auth/login`, { method:"POST", body: form });
+    if(!loginRes.ok){ const d = await loginRes.json(); showAuthError(d.detail || "Login failed."); return; }
+    const data = await loginRes.json();
+    token = data.access_token;
+    localStorage.setItem("foresite_token", token);
+    enterApp();
+  } catch(err){ showAuthError("Something went wrong. Check your connection."); }
+});
+
+document.getElementById("logoutBtn").addEventListener("click", ()=>{
+  token = null; localStorage.removeItem("foresite_token");
+  document.getElementById("appScreen").classList.add("hidden");
+  document.getElementById("authScreen").classList.remove("hidden");
+});
+
+function enterApp(){
+  document.getElementById("authScreen").classList.add("hidden");
+  document.getElementById("appScreen").classList.remove("hidden");
+  loadWatchlist();
+}
+
+document.querySelectorAll(".tabs button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    const tab = btn.dataset.tab;
+    document.getElementById("searchTab").classList.toggle("hidden", tab!=="search");
+    document.getElementById("watchlistTab").classList.toggle("hidden", tab!=="watchlist");
+    if(tab==="watchlist") loadWatchlist();
+  });
+});
+
+async function authedFetch(url, options={}){
+  options.headers = Object.assign({}, options.headers, {"Authorization": `Bearer ${token}`});
+  return fetch(url, options);
+}
+
+document.getElementById("searchBtn").addEventListener("click", async ()=>{
+  const query = document.getElementById("searchQuery").value.trim();
+  const provider = document.getElementById("providerSelect").value;
+  const resultsEl = document.getElementById("searchResults");
+  if(!query){ return; }
+  resultsEl.innerHTML = `<p class="empty">Searching…</p>`;
+
+  const path = provider === "reservecalifornia"
+    ? `/search/reservecalifornia/campgrounds?query=${encodeURIComponent(query)}`
+    : `/search/campgrounds?query=${encodeURIComponent(query)}`;
+
+  try{
+    const res = await authedFetch(`${API}${path}`);
+    if(res.status === 401){ handleExpiredSession(); return; }
+    const data = await res.json();
+    if(!data.length){ resultsEl.innerHTML = `<p class="empty">No campgrounds found. Try a different name.</p>`; return; }
+   resultsEl.innerHTML = data.map((c,i) => `
+      <div class="result">
+        <div class="name">${c.name}</div>
+        <div class="meta">${c.provider} · Facility ID ${c.facility_id}</div>
+        <div class="row">
+          <button onclick='addToWatchlist(${JSON.stringify(c).replace(/'/g,"&#39;")})'>+ Watch whole campground</button>
+          <button onclick='viewCampsites(${JSON.stringify(c).replace(/'/g,"&#39;")}, ${i})'>View individual sites</button>
+        </div>
+        <div id="sites-${i}"></div>
+      </div>
+    `).join("");
+  } catch(err){ resultsEl.innerHTML = `<p class="empty">Search failed. Try again.</p>`; }
+});
+window.viewCampsites = async function(campground, index){
+  const container = document.getElementById(`sites-${index}`);
+  container.innerHTML = `<p class="empty">Loading sites…</p>`;
+
+  const path = campground.provider === "ReserveCalifornia"
+    ? `/search/reservecalifornia/campsites?facility_id=${campground.facility_id}`
+    : `/search/campsites?facility_id=${campground.facility_id}`;
+
+  try{
+    const res = await authedFetch(`${API}${path}`);
+    if(res.status === 401){ handleExpiredSession(); return; }
+    const sites = await res.json();
+    if(!sites.length){ container.innerHTML = `<p class="empty">No individual sites found.</p>`; return; }
+    container.innerHTML = sites.map(s => `
+      <div class="result" style="margin-top:8px;">
+        <div class="name">${s.site_number || s.campsite_id}</div>
+        <button onclick='addToWatchlist(${JSON.stringify(campground).replace(/'/g,"&#39;")}, ${JSON.stringify(s).replace(/'/g,"&#39;")})'>+ Watch this site</button>
+      </div>
+    `).join("");
+  } catch(err){ container.innerHTML = `<p class="empty">Couldn't load sites.</p>`; }
+};
+window.addToWatchlist = async function(campground, site){
+  const startDate = prompt("Start date (YYYY-MM-DD)?", "2026-08-01");
+  if(!startDate) return;
+  const endDate = prompt("End date (YYYY-MM-DD)?", "2026-08-03");
+  if(!endDate) return;
+  const tripLabel = prompt("Trip name (e.g. 'Family beach trip')?", "");
+  const rank = prompt("Priority rank (1 = top choice)?", "1");
+
+  try{
+    const res = await authedFetch(`${API}/watchlist`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        provider: campground.provider,
+        facility_id: campground.facility_id,
+        facility_name: campground.name,
+        campsite_id: site ? site.campsite_id : null,
+        campsite_label: site ? site.site_number : null,
+        start_date: startDate,
+        end_date: endDate,
+        rank: parseInt(rank) || 1,
+        trip_label: tripLabel || null
+      })
+    });
+    if(res.status === 401){ handleExpiredSession(); return; }
+    if(res.ok){ alert("Added to your watchlist!"); }
+    else { alert("Couldn't add that — please try again."); }
+  } catch(err){ alert("Something went wrong."); }
+};
+
+async function loadWatchlist(){
+  const el = document.getElementById("watchlistResults");
+  el.innerHTML = `<p class="empty">Loading…</p>`;
+  try{
+    const res = await authedFetch(`${API}/watchlist`);
+    if(res.status === 401){ handleExpiredSession(); return; }
+    const data = await res.json();
+    if(!data.length){ el.innerHTML = `<p class="empty">Nothing on your watchlist yet — search for a campground to add one.</p>`; return; }
+    const grouped = {};
+    data.forEach(item=>{
+      const key = item.trip_label || "Ungrouped";
+      (grouped[key] = grouped[key] || []).push(item);
+    });
+    el.innerHTML = Object.entries(grouped).map(([trip, items])=>`
+      <h3 style="font-size:14px;margin:14px 0 6px;">${trip}</h3>
+      ${items.sort((a,b)=>a.rank-b.rank).map(item=>`
+        <div class="watch-item">
+          <div class="top">
+            <div>
+              <span class="rank-badge">#${item.rank}</span>
+              <strong>${item.facility_name}</strong>
+              ${item.campsite_label ? `<div style="font-size:13px;">${item.campsite_label}</div>` : ""}
+              <div style="font-size:12.5px;color:#666;">${item.start_date} → ${item.end_date}</div>
+              ${item.notes ? `<div style="font-size:12.5px;margin-top:4px;">${item.notes}</div>` : ""}
+            </div>
+            <button class="del" onclick="deleteWatchItem(${item.id})">Remove</button>
+          </div>
+        </div>
+      `).join("")}
+    `).join("");
+  } catch(err){ el.innerHTML = `<p class="empty">Couldn't load your watchlist.</p>`; }
+}
+
+window.deleteWatchItem = async function(id){
+  if(!confirm("Remove this from your watchlist?")) return;
+  await authedFetch(`${API}/watchlist/${id}`, { method:"DELETE" });
+  loadWatchlist();
+};
+
+function handleExpiredSession(){
+  token = null; localStorage.removeItem("foresite_token");
+  document.getElementById("appScreen").classList.add("hidden");
+  document.getElementById("authScreen").classList.remove("hidden");
+  showAuthError("Your session expired — please log in again.");
+}
+
+if(token){ enterApp(); }
+</script>
+</body>
+</html>
