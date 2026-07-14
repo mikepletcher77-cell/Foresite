@@ -4,7 +4,8 @@ from fastapi.staticfiles import StaticFiles
 
 from app.database import Base, engine
 from app.routers import auth_router, search_router, watchlist_router
-
+from apscheduler.schedulers.background import BackgroundScheduler
+import app.availability_checker as availability_checker
 # Creates tables on first run if they don't exist yet (SQLite/Postgres both fine)
 Base.metadata.create_all(bind=engine)
 
@@ -24,7 +25,9 @@ app.include_router(auth_router.router)
 app.include_router(search_router.router)
 app.include_router(watchlist_router.router)
 app.mount("/app", StaticFiles(directory="app/static", html=True), name="static")
-
+scheduler = BackgroundScheduler()
+scheduler.add_job(availability_checker.check_all_watchlist_items, "interval", minutes=15)
+scheduler.start()
 
 @app.get("/")
 def root():

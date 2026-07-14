@@ -41,6 +41,7 @@ class WatchlistItem(Base):
     rank = Column(Integer, default=1)   # 1 = top choice, 2 = fallback, etc.
     trip_label = Column(String, nullable=True)  # e.g. "Yosemite with the guys"
     active = Column(Boolean, default=True)
+    notified_available = Column(Boolean, default=False)
     notes = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)

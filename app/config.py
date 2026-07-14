@@ -12,6 +12,12 @@ class Settings(BaseSettings):
 
     database_url: str = ""
 
+    email_username: str = ""
+    email_password: str = ""
+    email_smtp_server: str = "smtp.gmail.com"
+    email_smtp_port: int = 465
+    email_from_address: str = ""
+
     class Config:
         env_file = ".env"
 

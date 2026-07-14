@@ -83,3 +83,31 @@ def delete_watchlist_item(
     db.delete(item)
     db.commit()
     return {"status": "deleted", "id": item_id}
+import app.availability_checker as availability_checker
+
+
+@router.post("/check-now")
+def trigger_check_now(current_user: User = Depends(get_current_user)):
+    """
+    Manually trigger an availability check for all watchlist items
+    (normally this runs automatically on a schedule).
+    """
+    availability_checker.check_all_watchlist_items()
+    return {"status": "check complete"}
+from app.email_service import send_email
+
+
+@router.post("/test-email")
+def test_email(current_user: User = Depends(get_current_user)):
+    """
+    Temporary: sends a test email to confirm Gmail credentials work.
+    Safe to delete once confirmed.
+    """
+    from app.config import settings
+    
+    success = send_email(
+        to_address=current_user.email,
+        subject="Foresite test email",
+        body="If you're reading this, your email setup is working correctly!"
+    )
+    return {"sent": success}
