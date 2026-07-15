@@ -1,0 +1,15 @@
+name: Check Campsite Availability
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping availability checker
+        run: |
+          curl -X POST https://foresite-3mrn.onrender.com/watchlist/run-scheduled-check \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}"
