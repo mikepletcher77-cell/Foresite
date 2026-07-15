@@ -111,3 +111,18 @@ def test_email(current_user: User = Depends(get_current_user)):
         body="If you're reading this, your email setup is working correctly!"
     )
     return {"sent": success}
+from fastapi import Header
+from app.config import settings
+
+
+@router.post("/run-scheduled-check")
+def run_scheduled_check(x_cron_secret: str = Header(None)):
+    """
+    Called automatically by a scheduled GitHub Action instead of a logged-in
+    user, protected by a shared secret instead of a personal login.
+    """
+    if not settings.cron_secret or x_cron_secret != settings.cron_secret:
+        raise HTTPException(status_code=401, detail="Invalid or missing secret")
+
+    availability_checker.check_all_watchlist_items()
+    return {"status": "check complete"}

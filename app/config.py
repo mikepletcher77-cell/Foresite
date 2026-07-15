@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     email_smtp_server: str = "smtp.gmail.com"
     email_smtp_port: int = 465
     email_from_address: str = ""
-
+    cron_secret: str = ""
     class Config:
         env_file = ".env"
 
