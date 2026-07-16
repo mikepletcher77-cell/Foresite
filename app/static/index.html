@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Foresite</title>
+
 <style>
   :root{
     --bark:#2f3b2a; --moss:#4a5d3a; --fern:#6b8552; --sand:#ece3cf;
@@ -37,6 +38,11 @@
   .hidden{display:none;}
   .empty{color:#888;font-size:13.5px;text-align:center;padding:20px;}
   #authScreen{max-width:380px;margin:60px auto;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .modal-overlay.hidden{display:none;}
+  .modal-box{background:#fff;border-radius:12px;padding:20px;width:90%;max-width:360px;}
+  .modal-box h2{margin-top:0;}
+  .modal-box label{display:block;font-size:12.5px;font-weight:600;margin-bottom:4px;color:var(--bark);margin-top:10px;}
 </style>
 </head>
 <body>
@@ -82,7 +88,23 @@
       </div>
       <div id="searchResults"></div>
     </div>
-
+<div id="addModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h2>Add to watchlist</h2>
+    <label>Start date</label>
+    <input type="date" id="modalStartDate">
+    <label>End date</label>
+    <input type="date" id="modalEndDate">
+    <label>Trip name (optional)</label>
+    <input type="text" id="modalTripLabel" placeholder="e.g. Family beach trip">
+    <label>Priority rank</label>
+    <input type="number" id="modalRank" value="1" min="1">
+    <div class="row" style="margin-top:16px;">
+      <button class="primary" id="modalCancel" style="background:#e5e0cf;color:var(--bark);">Cancel</button>
+      <button class="primary" id="modalConfirm">Add</button>
+    </div>
+  </div>
+</div>
     <div id="watchlistTab" class="hidden">
       <div class="card">
         <h2>Your watched sites</h2>
@@ -216,23 +238,36 @@ window.viewCampsites = async function(campground, index){
     `).join("");
   } catch(err){ container.innerHTML = `<p class="empty">Couldn't load sites.</p>`; }
 };
-window.addToWatchlist = async function(campground, site){
-  const startDate = prompt("Start date (YYYY-MM-DD)?", "2026-08-01");
-  if(!startDate) return;
-  const endDate = prompt("End date (YYYY-MM-DD)?", "2026-08-03");
-  if(!endDate) return;
-  const tripLabel = prompt("Trip name (e.g. 'Family beach trip')?", "");
-  const rank = prompt("Priority rank (1 = top choice)?", "1");
+let pendingCampground = null;
+let pendingSite = null;
+
+window.addToWatchlist = function(campground, site){
+  pendingCampground = campground;
+  pendingSite = site || null;
+  document.getElementById("addModal").classList.remove("hidden");
+};
+
+document.getElementById("modalCancel").addEventListener("click", ()=>{
+  document.getElementById("addModal").classList.add("hidden");
+});
+
+document.getElementById("modalConfirm").addEventListener("click", async ()=>{
+  const startDate = document.getElementById("modalStartDate").value;
+  const endDate = document.getElementById("modalEndDate").value;
+  const tripLabel = document.getElementById("modalTripLabel").value.trim();
+  const rank = document.getElementById("modalRank").value;
+
+  if(!startDate || !endDate){ alert("Please pick both a start and end date."); return; }
 
   try{
     const res = await authedFetch(`${API}/watchlist`, {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
-        provider: campground.provider,
-        facility_id: campground.facility_id,
-        facility_name: campground.name,
-        campsite_id: site ? site.campsite_id : null,
-        campsite_label: site ? site.site_number : null,
+        provider: pendingCampground.provider,
+        facility_id: pendingCampground.facility_id,
+        facility_name: pendingCampground.name,
+        campsite_id: pendingSite ? pendingSite.campsite_id : null,
+        campsite_label: pendingSite ? pendingSite.site_number : null,
         start_date: startDate,
         end_date: endDate,
         rank: parseInt(rank) || 1,
@@ -240,10 +275,11 @@ window.addToWatchlist = async function(campground, site){
       })
     });
     if(res.status === 401){ handleExpiredSession(); return; }
+    document.getElementById("addModal").classList.add("hidden");
     if(res.ok){ alert("Added to your watchlist!"); }
     else { alert("Couldn't add that — please try again."); }
   } catch(err){ alert("Something went wrong."); }
-};
+});
 
 async function loadWatchlist(){
   const el = document.getElementById("watchlistResults");
